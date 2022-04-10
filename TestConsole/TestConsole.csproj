@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Logit">
+      <HintPath>..\Logit\bin\Debug\netcoreapp3.1\Logit.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

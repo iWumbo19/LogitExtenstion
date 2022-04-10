@@ -15,10 +15,24 @@ namespace Logit
             if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
             if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
         }
+        public Logger(PreferenceBuilder preferences)
+        {
+            DirectoryPath = preferences._DirectoryPath;
+            LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
+            if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
+            if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
+        }
+        public Logger(string dirPath)
+        {
+            DirectoryPath = dirPath;
+            LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
+            if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
+            if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
+        }
 
         private void LogMessage(Log log)
         {
-            using (StreamWriter sw = File.AppendText(LogFilePath)) { sw.WriteLine(log.ToString()); }            
+            using (StreamWriter sw = File.AppendText(LogFilePath)) { sw.WriteLine(log.ToString()); }
         }
         public void Information(string message, Exception exception)
         {
