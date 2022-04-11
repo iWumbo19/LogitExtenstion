@@ -103,7 +103,7 @@ namespace Logit
                 {
                     Log errorLog = new Log(
                         Severity.Critical,
-                        "STREAM WRITER CRASHED UNEXPECTADLY. LOGS MAY BE MISSING",
+                        "STREAM WRITER CRASHED UNEXPECTADLY. LOGS MAY BE MISSING.",
                         DateTime.Now,
                         e);
                     sw.WriteLine(errorLog.ToString());
