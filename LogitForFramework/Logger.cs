@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 
-namespace Logit
+namespace LogitForFramework
 {
     public class Logger
     {
         internal string DirectoryPath { get; set; }
         internal string LogFilePath { get; set; }
-        internal Queue<Log> LogQueue { get; set; }
 
 
         /// <summary>
@@ -19,8 +17,6 @@ namespace Logit
         {
             DirectoryPath = Directory.GetCurrentDirectory() + "\\Log\\";
             if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
-            LogQueue = new Queue<Log>();
-            Task.Run(() => LogWriter());
         }
         /// <summary>
         /// Takes in an object with preset parameters that make Logit functions in specific ways (BETA)
@@ -33,8 +29,6 @@ namespace Logit
             LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
             if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
             if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
-            LogQueue = new Queue<Log>(100);
-            Task.Run(() => LogWriter());
         }
         /// <summary>
         /// Takes in 1 parameter to determine Log folder location
@@ -44,40 +38,8 @@ namespace Logit
         {
             DirectoryPath = dirPath;
             LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
-            CheckDirectory();
+            if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
             if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
-            LogQueue = new Queue<Log>(100);
-            Task.Run(() => LogWriter());
-        }
-
-
-        internal void CheckDirectory()
-        {
-            if (!Directory.Exists(DirectoryPath))
-            {
-                try
-                {
-                    Directory.CreateDirectory(DirectoryPath);
-                }
-                catch (Exception ex)
-                {
-                    throw;
-                }
-            }
-        }
-        /// <summary>
-        /// Continues to run in background until object is cleaned up. Watches LogQueue for new entries in need of logging
-        /// </summary>
-        /// <returns>Nothing important for operation</returns>
-        internal async Task LogWriter()
-        {
-            while (true)
-            {
-                if (LogQueue.Count == 0) { continue; }                
-                if (LogQueue.Peek() == null) { continue; }
-
-                HandleMessage(LogQueue.Dequeue());                 
-            }
         }
         /// <summary>
         /// Opens up stream writer and appends a formatted string to end of file
@@ -96,7 +58,6 @@ namespace Logit
             }
             catch (Exception e)
             {
-                LogQueue.Clear();
                 using (StreamWriter sw = File.AppendText(LogFilePath))
                 {
                     Log errorLog = new Log(
@@ -109,14 +70,14 @@ namespace Logit
             }
         }
         /// <summary>
-        /// Creates log that is then added to the loggers queue. Logger runs in background
+        /// Creates log that handed straight to MessageHandler
         /// </summary>
         /// <param name="level">Enum with multiple levels of severity</param>
         /// <param name="message">Information you want logged at that particular call</param>
         /// <param name="exception">Optional paramter for passing in thrown exceptions</param>
         public void Log(Severity level, string message, Exception exception = null)
         {
-            LogQueue.Enqueue(new Log(
+            HandleMessage(new Log(
                 level,
                 message,
                 DateTime.Now,

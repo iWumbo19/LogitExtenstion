@@ -9,6 +9,9 @@
     <Reference Include="Logit">
       <HintPath>..\Logit\bin\Debug\netcoreapp3.1\Logit.dll</HintPath>
     </Reference>
+    <Reference Include="LogitForFramework">
+      <HintPath>..\LogitForFramework\bin\Debug\LogitForFramework.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
