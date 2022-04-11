@@ -1,113 +1,369 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Logit
 {
     public class Logger
     {
-        public string DirectoryPath { get; set; }
-        public string LogFilePath { get; set; }
+        internal string DirectoryPath { get; set; }
+        internal string LogFilePath { get; set; }
+        internal Queue<Log> LogQueue { get; set; }
 
+
+        /// <summary>
+        /// Default constructor that will put log folder in root directory of application
+        /// </summary>
         public Logger()
         {
             DirectoryPath = Directory.GetCurrentDirectory() + "\\Log\\";
-            LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
             if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
-            if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
+            LogQueue = new Queue<Log>();
+            Task.Run(() => LogWriter());
         }
+        /// <summary>
+        /// Takes in an object with preset parameters that make Logit functions in specific ways (BETA)
+        /// </summary>
+        /// <param name="preferences">PreferenceBuilder obj that contains customization parameters
+        /// for Logit functions (BETA)</param>
         public Logger(PreferenceBuilder preferences)
         {
             DirectoryPath = preferences._DirectoryPath;
             LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
             if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
             if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
+            LogQueue = new Queue<Log>(100);
+            Task.Run(() => LogWriter());
         }
+        /// <summary>
+        /// Takes in 1 parameter to determine Log folder location
+        /// </summary>
+        /// <param name="dirPath">Full path of desired Logit Log folder where logs will be logged</param>
         public Logger(string dirPath)
         {
             DirectoryPath = dirPath;
             LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
             if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
             if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
+            LogQueue = new Queue<Log>(100);
+            Task.Run(() => LogWriter());
         }
 
-        private void LogMessage(Log log)
+
+        /// <summary>
+        /// Continues to run in background until object is cleaned up. Watches LogQueue for new entries in need of logging
+        /// </summary>
+        /// <returns>Nothing important for operation</returns>
+        internal async Task LogWriter()
         {
-            using (StreamWriter sw = File.AppendText(LogFilePath)) { sw.WriteLine(log.ToString()); }
+            while (true)
+            {
+                if (LogQueue.Count == 0) { continue; }                
+                if (LogQueue.Peek() == null) { continue; }
+
+                HandleMessage(LogQueue.Dequeue());                 
+            }
         }
-        public void Information(string message, Exception exception)
+        /// <summary>
+        /// Opens up stream writer and appends a formatted string to end of file
+        /// </summary>
+        /// <param name="log">Object created by Log method from LogQueue</param>
+        internal void HandleMessage(Log log)
         {
-            LogMessage(new Log(
-                SeverityLevel.Information,
+            LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
+            if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
+            try
+            {                
+                using (StreamWriter sw = File.AppendText(LogFilePath))
+                {
+                    sw.WriteLine(log.ToString());
+                }
+            }
+            catch (Exception e)
+            {
+                LogQueue.Clear();
+                using (StreamWriter sw = File.AppendText(LogFilePath))
+                {
+                    Log errorLog = new Log(
+                        Severity.Critical,
+                        "STREAM WRITER CRASHED UNEXPECTADLY. LOGS MAY BE MISSING",
+                        DateTime.Now,
+                        e);
+                    sw.WriteLine(errorLog.ToString());
+                }
+            }
+        }
+        /// <summary>
+        /// Creates log that is then added to the loggers queue. Logger runs in background
+        /// </summary>
+        /// <param name="level">Enum with multiple levels of severity</param>
+        /// <param name="message">Information you want logged at that particular call</param>
+        /// <param name="exception">Optional paramter for passing in thrown exceptions</param>
+        public void Log(Severity level, string message, Exception exception = null)
+        {
+            LogQueue.Enqueue(new Log(
+                level,
                 message,
                 DateTime.Now,
                 exception));
         }
-        public void Information(string message)
-        {
-            LogMessage(new Log(
-                SeverityLevel.Information,
-                message,
-                DateTime.Now));
-        }
-        public void Warning(string message, Exception exception)
-        {
-            LogMessage(new Log(
-                SeverityLevel.Warning,
-                message,
-                DateTime.Now,
-                exception));
-        }
-        public void Warning(string message)
-        {
-            LogMessage(new Log(
-                SeverityLevel.Warning,
-                message,
-                DateTime.Now));
-        }
-        public void Critical(string message, Exception exception)
-        {
-            LogMessage(new Log(
-                SeverityLevel.Critical,
-                message,
-                DateTime.Now,
-                exception));
-        }
-        public void Critical(string message)
-        {
-            LogMessage(new Log(
-                SeverityLevel.Critical,
-                message,
-                DateTime.Now));
-        }
-        public void Configuration(string message, Exception exception)
-        {
-            LogMessage(new Log(
-                SeverityLevel.Configuration,
-                message,
-                DateTime.Now,
-                exception));
-        }
-        public void Configuration(string message)
-        {
-            LogMessage(new Log(
-                SeverityLevel.Configuration,
-                message,
-                DateTime.Now));
-        }
-        public void Debug(string message, Exception exception)
-        {
-            LogMessage(new Log(
-                SeverityLevel.Debug,
-                message,
-                DateTime.Now,
-                exception));
-        }
-        public void Debug(string message)
-        {
-            LogMessage(new Log(
-                SeverityLevel.Debug,
-                message,
-                DateTime.Now));
-        }
+
+
+
+        #region Depreceated Control Flow
+        ///// <summary>
+        ///// Logs passed in message with the *Information* tag. 
+        ///// Includes exception parameter
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        ///// <param name="exception">Thrown exception</param>
+        //public void Information(string message, Exception exception)
+        //{
+        //    HandleMessage(new Log(
+        //        Severity.Information,
+        //        message,
+        //        DateTime.Now,
+        //        exception));
+        //}
+        ///// <summary>
+        ///// Logs passed in message with the *Information* tag. 
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        //public void Information(string message)
+        //{
+        //    HandleMessage(new Log(
+        //        Severity.Information,
+        //        message,
+        //        DateTime.Now));
+        //}
+        ///// <summary>
+        ///// Logs passed in message with the *Warning* tag. 
+        ///// Includes exception parameter
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        ///// <param name="exception">Thrown exception</param>
+        //public void Warning(string message, Exception exception)
+        //{
+        //    HandleMessage(new Log(
+        //        Severity.Warning,
+        //        message,
+        //        DateTime.Now,
+        //        exception));
+        //}
+        ///// <summary>
+        ///// Logs passed in message with the *Warning* tag. 
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        //public void Warning(string message)
+        //{
+        //    HandleMessage(new Log(
+        //        Severity.Warning,
+        //        message,
+        //        DateTime.Now));
+        //}
+        ///// <summary>
+        ///// Logs passed in message with the *CRITICAL* tag. 
+        ///// Includes exception parameter
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        ///// <param name="exception">Thrown exception</param>
+        //public void Critical(string message, Exception exception)
+        //{
+        //    HandleMessage(new Log(
+        //        Severity.Critical,
+        //        message,
+        //        DateTime.Now,
+        //        exception));
+        //}
+        ///// <summary>
+        ///// Logs passed in message with the *CRITICAL* tag. 
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        //public void Critical(string message)
+        //{
+        //    HandleMessage(new Log(
+        //        Severity.Critical,
+        //        message,
+        //        DateTime.Now));
+        //}
+        ///// <summary>
+        ///// Logs passed in message with the *Configuration* tag. 
+        ///// Includes exception parameter
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        ///// <param name="exception">Thrown exception</param>
+        //public void Configuration(string message, Exception exception)
+        //{
+        //    HandleMessage(new Log(
+        //        Severity.Configuration,
+        //        message,
+        //        DateTime.Now,
+        //        exception));
+        //}
+        ///// <summary>
+        ///// Logs passed in message with the *Configuration* tag. 
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        //public void Configuration(string message)
+        //{
+        //    HandleMessage(new Log(
+        //        Severity.Configuration,
+        //        message,
+        //        DateTime.Now));
+        //}
+        ///// <summary>
+        ///// Logs passed in message with the *Debug* tag. 
+        ///// Includes exception parameter
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        ///// <param name="exception">Thrown exception</param>
+        //public void Debug(string message, Exception exception)
+        //{
+        //    HandleMessage(new Log(
+        //        Severity.Debug,
+        //        message,
+        //        DateTime.Now,
+        //        exception));
+        //}
+        ///// <summary>
+        ///// Logs passed in message with the *Debug* tag. 
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        //public void Debug(string message)
+        //{
+        //    HandleMessage(new Log(
+        //        Severity.Debug,
+        //        message,
+        //        DateTime.Now));
+        //}
+        ///// <summary>
+        ///// Asyncronously logs passed in message with the *Information* tag. 
+        ///// Includes exception parameter
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        ///// <param name="exception">Thrown exception</param>
+        //public async Task InformationAsync(string message, Exception exception)
+        //{
+        //    await Task.Run(() => HandleMessage(new Log(
+        //        Severity.Information,
+        //        message,
+        //        DateTime.Now,
+        //        exception)));
+        //}
+        ///// <summary>
+        ///// Asyncronously logs passed in message with the *Information* tag. 
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        //public async Task InformationAsync(string message)
+        //{
+        //    await Task.Run(() => HandleMessage(new Log(
+        //        Severity.Information,
+        //        message,
+        //        DateTime.Now)));
+        //}
+        ///// <summary>
+        ///// Asyncronously logs passed in message with the *Warning* tag. 
+        ///// Includes exception parameter
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        ///// <param name="exception">Thrown exception</param>
+        //public async Task WarningAsync(string message, Exception exception)
+        //{
+        //    await Task.Run (() => HandleMessage(new Log(
+        //        Severity.Warning,
+        //        message,
+        //        DateTime.Now,
+        //        exception)));
+        //}
+        ///// <summary>
+        ///// Asyncronously logs passed in message with the *Warning* tag. 
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        //public async Task WarningAsync(string message)
+        //{
+        //    await Task.Run(() => HandleMessage(new Log(
+        //        Severity.Warning,
+        //        message,
+        //        DateTime.Now)));
+        //}
+        ///// <summary>
+        ///// Asyncronously logs passed in message with the *CRITICAL* tag. 
+        ///// Includes exception parameter
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        ///// <param name="exception">Thrown exception</param>
+        //public async Task CriticalAsync(string message, Exception exception)
+        //{
+        //    await Task.Run(() => HandleMessage(new Log(
+        //        Severity.Critical,
+        //        message,
+        //        DateTime.Now,
+        //        exception)));
+        //}
+        ///// <summary>
+        ///// Asyncronously logs passed in message with the *CRITICAL* tag. 
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        //public async Task CriticalAsync(string message)
+        //{
+        //    await Task.Run(() => HandleMessage(new Log(
+        //        Severity.Critical,
+        //        message,
+        //        DateTime.Now)));
+        //}
+        ///// <summary>
+        ///// Asyncronously logs passed in message with the *Configuration* tag. 
+        ///// Includes exception parameter
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        ///// <param name="exception">Thrown exception</param>
+        //public async Task ConfigurationAsync(string message, Exception exception)
+        //{
+        //    await Task.Run(() => HandleMessage(new Log(
+        //        Severity.Configuration,
+        //        message,
+        //        DateTime.Now,
+        //        exception)));
+        //}
+        ///// <summary>
+        ///// Asyncronously logs passed in message with the *Configuration* tag. 
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        //public async Task ConfigurationAsync(string message)
+        //{
+        //    await Task.Run(() => HandleMessage(new Log(
+        //        Severity.Configuration,
+        //        message,
+        //        DateTime.Now)));
+        //}
+        ///// <summary>
+        ///// Asyncronously logs passed in message with the *Debug* tag. 
+        ///// Includes exception parameter
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        ///// <param name="exception">Thrown exception</param>
+        //public async Task DebugAsync(string message, Exception exception)
+        //{
+        //    await Task.Run(() => HandleMessage(new Log(
+        //        Severity.Debug,
+        //        message,
+        //        DateTime.Now,
+        //        exception)));
+        //}
+        ///// <summary>
+        ///// Asyncronously logs passed in message with the *Debug* tag. 
+        ///// </summary>
+        ///// <param name="message">Message to be logged</param>
+        //public async Task DebugAsync(string message)
+        //{
+        //    await Task.Run(() => HandleMessage(new Log(
+        //        Severity.Debug,
+        //        message,
+        //        DateTime.Now)));
+        //}
+        #endregion
+
+
     }
 }

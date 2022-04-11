@@ -5,12 +5,12 @@ namespace Logit
 {
     internal class Log
     {
-        public SeverityLevel SeverityLevel { get; set; }
+        public Severity SeverityLevel { get; set; }
         public string Message { get; set; }
         public DateTime Time { get; set; }
         public Exception Exception { get; set; }
 
-        public Log(SeverityLevel level, string message, DateTime date, Exception exception)
+        public Log(Severity level, string message, DateTime date, Exception exception)
         {
             this.Exception = exception;
             this.SeverityLevel = level;
@@ -18,7 +18,7 @@ namespace Logit
             this.Time = date;
         }
 
-        public Log(SeverityLevel level, string message, DateTime date)
+        public Log(Severity level, string message, DateTime date)
         {
             this.Exception = null;
             this.SeverityLevel = level;
@@ -32,11 +32,11 @@ namespace Logit
 
             switch (SeverityLevel)
             {
-                case SeverityLevel.Debug: sb.Append("*Debug*,"); break;
-                case SeverityLevel.Information: sb.Append("*Information*,"); break;
-                case SeverityLevel.Configuration: sb.Append("*Configuration*,"); break;
-                case SeverityLevel.Warning: sb.Append("*Warning*,"); break;
-                case SeverityLevel.Critical: sb.Append("*CRITICAL*,"); break;
+                case Severity.Debug: sb.Append("*Debug*,"); break;
+                case Severity.Information: sb.Append("*Information*,"); break;
+                case Severity.Configuration: sb.Append("*Configuration*,"); break;
+                case Severity.Warning: sb.Append("*Warning*,"); break;
+                case Severity.Critical: sb.Append("*CRITICAL*,"); break;
             }
 
             sb.Append(DateTime.Now.ToString() + ",");

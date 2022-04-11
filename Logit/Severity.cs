@@ -1,6 +1,6 @@
 ﻿namespace Logit
 {
-    internal enum SeverityLevel
+    public enum Severity
     {
         Critical,
         Warning,
