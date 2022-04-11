@@ -1,5 +1,5 @@
 ﻿using System;
-using LogitForFramework;
+using Logit;
 
 namespace TestConsole
 {
@@ -7,8 +7,6 @@ namespace TestConsole
     {
         static void Main(string[] args)
         {
-            System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
-
 
             Logger logger = new Logger();
 

@@ -10,6 +10,12 @@ namespace Logit
         internal string DirectoryPath { get; set; }
         internal string LogFilePath { get; set; }
         internal Queue<Log> LogQueue { get; set; }
+        internal string Banner
+        {
+            get { return $"***********LOGIT FILE FOR {DateTime.Now.Date.ToShortDateString()}***********"; }
+            set { Banner = value; }
+        }
+
 
 
         /// <summary>
@@ -17,8 +23,7 @@ namespace Logit
         /// </summary>
         public Logger()
         {
-            DirectoryPath = Directory.GetCurrentDirectory() + "\\Log\\";
-            if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
+            SetDirectoryPath(Directory.GetCurrentDirectory() + "\\Log\\");
             LogQueue = new Queue<Log>();
             Task.Run(() => LogWriter());
         }
@@ -29,11 +34,8 @@ namespace Logit
         /// for Logit functions (BETA)</param>
         public Logger(PreferenceBuilder preferences)
         {
-            DirectoryPath = preferences._DirectoryPath;
-            LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
-            if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
-            if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
-            LogQueue = new Queue<Log>(100);
+            SetDirectoryPath(preferences._DirectoryPath);
+            LogQueue = new Queue<Log>();
             Task.Run(() => LogWriter());
         }
         /// <summary>
@@ -42,28 +44,32 @@ namespace Logit
         /// <param name="dirPath">Full path of desired Logit Log folder where logs will be logged</param>
         public Logger(string dirPath)
         {
-            DirectoryPath = dirPath;
-            LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
-            CheckDirectory();
-            if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
-            LogQueue = new Queue<Log>(100);
+            SetDirectoryPath(dirPath);
+            LogQueue = new Queue<Log>();
             Task.Run(() => LogWriter());
         }
 
 
-        internal void CheckDirectory()
+        /// <summary>
+        /// Creates updated filepath string and checks to make sure it exists
+        /// </summary>
+        internal void SetFilePath()
         {
-            if (!Directory.Exists(DirectoryPath))
+            LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
+            if (!File.Exists(LogFilePath)) 
             {
-                try
-                {
-                    Directory.CreateDirectory(DirectoryPath);
-                }
-                catch (Exception ex)
-                {
-                    throw;
-                }
+                File.CreateText(LogFilePath).Close();
+                using (StreamWriter sw = File.AppendText(LogFilePath)) { sw.WriteLine(Banner); }
             }
+        }
+        /// <summary>
+        /// Creates directory path from passed in string. Creates directory if there isn't one
+        /// </summary>
+        /// <param name="dirPath">Full path of desired directory</param>
+        internal void SetDirectoryPath(string dirPath)
+        {
+            DirectoryPath = dirPath;
+            if (!Directory.Exists(DirectoryPath)) { Directory.CreateDirectory(DirectoryPath); }
         }
         /// <summary>
         /// Continues to run in background until object is cleaned up. Watches LogQueue for new entries in need of logging
@@ -85,14 +91,10 @@ namespace Logit
         /// <param name="log">Object created by Log method from LogQueue</param>
         internal void HandleMessage(Log log)
         {
-            LogFilePath = DirectoryPath + DateTime.Now.ToShortDateString().Replace("/", "_") + "_log.txt";
-            if (!File.Exists(LogFilePath)) { File.CreateText(LogFilePath).Close(); }
+            SetFilePath();
             try
             {                
-                using (StreamWriter sw = File.AppendText(LogFilePath))
-                {
-                    sw.WriteLine(log.ToString());
-                }
+                using (StreamWriter sw = File.AppendText(LogFilePath)) { sw.WriteLine(log.ToString()); }
             }
             catch (Exception e)
             {
