@@ -6,11 +6,15 @@ namespace Logit
 {
     public class PreferenceBuilder
     {
-        public string _DirectoryPath { get; set; }
+        public string directoryPath { get; set; }
+        public char logDelimiter { get; set; }
 
-        public PreferenceBuilder(string DirectoryPath)
+        public PreferenceBuilder(string directoryPath = " ", char logDelimiter = ',')
         {
-            this._DirectoryPath = DirectoryPath;
+            if (directoryPath == " ") { Utils.SetDirectoryPath(); }
+            else { this.directoryPath = directoryPath; }
+
+            this.logDelimiter = logDelimiter;
         }
     }
 }

@@ -1,49 +1,55 @@
 ﻿using System;
-using System.Text;
+using System.IO;
 
 namespace Logit
 {
-    internal class Log
+
+    public static class Log
     {
-        public Severity SeverityLevel { get; set; }
-        public string Message { get; set; }
-        public DateTime Time { get; set; }
-        public Exception Exception { get; set; }
+        internal static string DirectoryPath { get; set; }
+        internal static string LogFilePath { get; set; }
+        internal static char LogDelimiter { get; set; } = ',';
 
-        public Log(Severity level, string message, DateTime date, Exception exception)
+        /// <summary>
+        /// Allows for updateing preferences with passed in object
+        /// </summary>
+        /// <param name="prefs">Object that contains</param>
+        public static void SetPreferences(PreferenceBuilder prefs)
         {
-            this.Exception = exception;
-            this.SeverityLevel = level;
-            this.Message = message;
-            this.Time = date;
+            DirectoryPath = prefs.directoryPath;
+            LogDelimiter = prefs.logDelimiter;
         }
-
-        public Log(Severity level, string message, DateTime date)
+        /// <summary>
+        /// Allows you to set the path of the directory where the Log directory will be stored.
+        /// If none is specified, the root folder of the application will be default
+        /// </summary>
+        /// <param name="folderPath">Full path of the desired Log folder</param>
+        public static void ChangeDirectory(string folderPath)
         {
-            this.Exception = null;
-            this.SeverityLevel = level;
-            this.Time = date;
-            this.Message = message;
+            Utils.SetDirectoryPath(folderPath);
         }
-
-        public override string ToString()
+        /// <summary>
+        /// Method that is responsible for opening, writing, and closing log file
+        /// </summary>
+        /// <param name="log"></param>
+        internal static void HandleMessage(LogModel log)
         {
-            StringBuilder sb = new StringBuilder();
-
-            switch (SeverityLevel)
-            {
-                case Severity.Debug: sb.Append("*Debug*,"); break;
-                case Severity.Information: sb.Append("*Information*,"); break;
-                case Severity.Configuration: sb.Append("*Configuration*,"); break;
-                case Severity.Warning: sb.Append("*Warning*,"); break;
-                case Severity.Critical: sb.Append("*CRITICAL*,"); break;
-            }
-
-            sb.Append(DateTime.Now.ToString() + ",");
-            sb.Append(Message);
-            if (Exception != null) { sb.Append(",EXCEPTION THROWN: " + Exception.Message.ToString()); }
-
-            return sb.ToString();
+            Utils.SetFilePath();
+            using (StreamWriter sw = File.AppendText(LogFilePath)) { sw.WriteLine(log.ToString()); }            
+        }
+        /// <summary>
+        /// Appends log with passed in parameters
+        /// </summary>
+        /// <param name="level">Severity enum to specify level of severity</param>
+        /// <param name="message">Desired message to be associated with log</param>
+        /// <param name="exception">Optional parameter for logging specific exception messages</param>
+        public static void Append(Severity level, string message, Exception exception = null)
+        {
+            HandleMessage(new LogModel(
+                level,
+                message,
+                DateTime.Now,
+                exception));
         }
 
     }
